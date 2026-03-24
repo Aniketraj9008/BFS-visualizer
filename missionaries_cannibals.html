@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Missionaries & Cannibals — Advanced</title>
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=IM+Fell+English:ital@0;1&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#060a10;--bg2:#0b1120;--panel:#0f1929;--panel2:#162035;
+  --border:#1e3050;--border2:#2a4570;
+  --teal:#00e5c0;--teal2:#00b096;--teal-glow:rgba(0,229,192,0.15);
+  --gold:#ffcc44;--gold2:#e0a800;--gold-glow:rgba(255,204,68,0.15);
+  --red:#ff4d6d;--red2:#cc2244;--red-glow:rgba(255,77,109,0.15);
+  --blue:#4da6ff;--blue-glow:rgba(77,166,255,0.15);
+  --text:#dde8f5;--muted:#5a7a9a;
+  --M:#4da6ff;--C:#ff4d6d;
+  --water1:#071828;--water2:#0a2238;
+  --grass:#0d2b0d;--grass2:#092009;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'IM Fell English',Georgia,serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(0,80,120,0.18),transparent 70%),radial-gradient(ellipse 40% 30% at 20% 80%,rgba(0,60,30,0.12),transparent 60%);pointer-events:none;z-index:0}
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.star{position:absolute;border-radius:50%;background:white;animation:twinkle var(--d,3s) var(--delay,0s) ease-in-out infinite alternate}
+@keyframes twinkle{0%{opacity:0.1;transform:scale(1)}100%{opacity:0.8;transform:scale(1.3)}}
+#app{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 1rem 3rem}
+
+/* HEADER */
+header{text-align:center;padding:2.5rem 1rem 1rem;position:relative}
+.hskull{font-size:2rem;opacity:0.4;animation:float 4s ease-in-out infinite;display:block}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+h1{font-family:'Pirata One',cursive;font-size:clamp(2rem,6vw,4rem);letter-spacing:0.05em;line-height:1;margin:0.3rem 0 0.2rem;background:linear-gradient(135deg,var(--gold) 0%,#fff8e0 40%,var(--teal) 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px rgba(255,204,68,0.25))}
+.subtitle{font-size:1rem;color:var(--muted);font-style:italic;letter-spacing:0.04em;margin-bottom:0.5rem}
+.divider{width:200px;height:1px;margin:0.8rem auto;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+
+/* CONFIG PANEL */
+#config-section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.4rem;margin-bottom:1.2rem;position:relative;overflow:hidden}
+#config-section::before{content:'⚙  SETUP — ADD / REMOVE MISSIONARIES & CANNIBALS';position:absolute;top:0;left:0;right:0;background:linear-gradient(90deg,var(--border),transparent);padding:0.35rem 1rem;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.18em;color:var(--muted)}
+.config-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem;margin-top:1.8rem;align-items:start}
+.config-group{display:flex;flex-direction:column;gap:0.5rem;align-items:center}
+.config-label{font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;text-align:center}
+.counter-wrap{background:var(--panel2);border:1px solid var(--border2);border-radius:12px;padding:0.7rem 0.9rem;display:flex;flex-direction:column;align-items:center;gap:0.4rem;width:100%}
+.counter-row{display:flex;align-items:center;gap:0.6rem}
+.cnt-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border2);background:var(--panel);color:var(--text);font-size:1.3rem;font-weight:700;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;line-height:1;user-select:none}
+.cnt-btn:hover{transform:scale(1.15)}
+.cnt-btn.minus:hover{border-color:var(--red);color:var(--red);box-shadow:0 0 10px var(--red-glow)}
+.cnt-btn.plus:hover {border-color:var(--teal);color:var(--teal);box-shadow:0 0 10px var(--teal-glow)}
+.cnt-val{font-family:'Pirata One',cursive;font-size:2.2rem;min-width:2.4rem;text-align:center;line-height:1;transition:transform 0.15s}
+.cnt-val.bump{animation:bump 0.2s ease}
+@keyframes bump{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.cnt-val.blue{color:var(--M);text-shadow:0 0 14px rgba(77,166,255,0.4)}
+.cnt-val.red {color:var(--C);text-shadow:0 0 14px rgba(255,77,109,0.4)}
+.cnt-val.gold{color:var(--gold);text-shadow:0 0 14px rgba(255,204,68,0.4)}
+.cnt-sub{font-size:0.72rem;color:var(--muted);text-align:center;line-height:1.4}
+/* Range hint */
+.range-hint{font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--border2);letter-spacing:0.1em}
+/* Preview bar */
+#cfg-preview{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;min-height:28px;padding:4px 0}
+.prev-m{font-size:1.2rem;animation:appear 0.2s ease}
+.prev-c{font-size:1.2rem;animation:appear 0.2s ease}
+@keyframes appear{from{opacity:0;transform:scale(0.4)}to{opacity:1;transform:scale(1)}}
+.apply-btn{grid-column:1/-1;font-family:'Pirata One',cursive;font-size:1.1rem;letter-spacing:0.06em;padding:0.75rem 2rem;border-radius:12px;border:none;background:linear-gradient(135deg,var(--teal2),var(--teal));color:#001a14;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 22px rgba(0,229,192,0.3)}
+.apply-btn:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,229,192,0.45)}
+
+/* STATS BAR */
+#stats-bar{display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:1rem}
+.stat-chip{font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.07em;padding:0.38rem 0.85rem;border-radius:20px;border:1px solid var(--border);background:var(--panel);color:var(--muted);display:flex;align-items:center;gap:0.4rem}
+.stat-chip .val{color:var(--gold);font-size:0.95rem;font-weight:700}
+.stat-chip.safe {border-color:rgba(0,229,192,0.35);color:var(--teal)}
+.stat-chip.danger{border-color:rgba(255,77,109,0.4);color:var(--red);animation:pulse-red 1s ease infinite}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 rgba(255,77,109,0)}50%{box-shadow:0 0 12px rgba(255,77,109,0.35)}}
+
+/* SCENE */
+#scene-wrap{border-radius:20px;overflow:hidden;border:1px solid var(--border2);box-shadow:0 0 80px rgba(0,229,192,0.06),0 20px 60px rgba(0,0,0,0.6);margin-bottom:1rem}
+#scene{display:grid;grid-template-columns:1fr 260px 1fr;min-height:320px;position:relative}
+
+/* BANKS */
+.bank{background:linear-gradient(180deg,var(--grass),var(--grass2) 100%);padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.65rem;position:relative;overflow:hidden}
+.bank::after{content:'🌲';position:absolute;bottom:6px;font-size:2.2rem;opacity:0.15}
+#left-bank::after{right:6px}
+#right-bank::after{left:6px}
+.bank-header{font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;padding:0.28rem 0.7rem;border-radius:20px;border:1px solid var(--border2);color:var(--muted);background:rgba(0,0,0,0.35);transition:all 0.3s}
+.bank.boat-here .bank-header{border-color:var(--gold);color:var(--gold);box-shadow:0 0 12px var(--gold-glow)}
+.bank.danger{box-shadow:inset 0 0 35px rgba(255,77,109,0.22)}
+.people-area{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;width:100%;max-width:175px;min-height:80px;align-content:start}
+.person{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 2px;border-radius:8px;transition:transform 0.25s;cursor:default;animation:pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes pop-in{from{opacity:0;transform:scale(0.3) translateY(15px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.person:hover{transform:translateY(-5px) scale(1.1)}
+.person .ico{font-size:1.75rem;line-height:1}
+.person .lbl{font-family:'Share Tech Mono',monospace;font-size:0.46rem;letter-spacing:0.1em;font-weight:700}
+.person.missionary .ico{filter:drop-shadow(0 0 7px rgba(77,166,255,0.7))}
+.person.missionary .lbl{color:var(--M)}
+.person.cannibal   .ico{filter:drop-shadow(0 0 7px rgba(255,77,109,0.7))}
+.person.cannibal   .lbl{color:var(--C)}
+.bank-counts{display:flex;gap:0.7rem;font-family:'Share Tech Mono',monospace;font-size:0.7rem}
+.bc-m{display:flex;align-items:center;gap:3px;color:var(--M);background:rgba(77,166,255,0.07);border:1px solid rgba(77,166,255,0.18);padding:2px 9px;border-radius:10px}
+.bc-c{display:flex;align-items:center;gap:3px;color:var(--C);background:rgba(255,77,109,0.07);border:1px solid rgba(255,77,109,0.18);padding:2px 9px;border-radius:10px}
+.bc-num{font-size:1rem;font-weight:700}
+
+/* RIVER */
+#river{background:linear-gradient(180deg,var(--water1),var(--water2) 100%);position:relative;overflow:hidden}
+.wl{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(77,166,255,0.22),rgba(0,229,192,0.15),rgba(77,166,255,0.22),transparent)}
+.wl:nth-child(1){top:18%;animation:flow 2.6s linear infinite}
+.wl:nth-child(2){top:38%;animation:flow 3.3s linear infinite;animation-delay:-1.1s}
+.wl:nth-child(3){top:58%;animation:flow 2.9s linear infinite;animation-delay:-2.1s}
+.wl:nth-child(4){top:78%;animation:flow 3.6s linear infinite;animation-delay:-0.6s}
+@keyframes flow{0%{transform:translateX(-100%);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateX(100%);opacity:0}}
+.bubble{position:absolute;border-radius:50%;border:1px solid rgba(77,166,255,0.18);animation:bubble-rise var(--dur,5s) var(--del,0s) linear infinite}
+@keyframes bubble-rise{0%{bottom:-20px;opacity:0;transform:translateX(0)}20%{opacity:0.5}80%{opacity:0.25}100%{bottom:100%;opacity:0;transform:translateX(var(--dx,10px))}}
+
+/* BOAT */
+#boat-track{position:absolute;top:50%;left:0;right:0;height:0}
+#boat-shell{position:absolute;top:0;left:5%;transform:translate(-50%,-65%);transition:left 1.4s cubic-bezier(0.68,-0.2,0.32,1.2);display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.7))}
+#boat-shell.right{left:95%}
+#boat-passengers{display:flex;gap:2px;justify-content:center;align-items:flex-end;min-height:44px;width:130px;position:relative;z-index:2;padding-bottom:4px}
+#boat-passengers .person{width:30px}
+#boat-passengers .ico{font-size:1.3rem}
+#boat-passengers .lbl{font-size:0.42rem}
+#boat-svg{width:130px;position:relative;z-index:1}
+@keyframes bob{0%,100%{transform:translate(-50%,-65%) rotate(-1.5deg)}50%{transform:translate(-50%,-60%) rotate(1.5deg)}}
+#boat-shell:not(.moving){animation:bob 3.5s ease-in-out infinite}
+.river-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:0.52rem;letter-spacing:0.2em;color:rgba(77,166,255,0.35);white-space:nowrap}
+
+/* MOVE SECTION */
+#move-section{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.2rem;margin-bottom:1rem;position:relative;overflow:hidden}
+#move-section::before{content:'⛵  SELECT WHO CROSSES';position:absolute;top:0;left:0;right:0;background:linear-gradient(90deg,rgba(0,229,192,0.07),transparent);padding:0.35rem 1rem;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;color:var(--teal);border-bottom:1px solid rgba(0,229,192,0.1)}
+#dir-badge{display:inline-flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;color:var(--gold);background:rgba(255,204,68,0.07);border:1px solid rgba(255,204,68,0.22);padding:0.3rem 0.9rem;border-radius:20px;margin:1.8rem 0 0.6rem}
+#dir-badge.right{color:var(--teal);border-color:rgba(0,229,192,0.22);background:rgba(0,229,192,0.05)}
+#move-btns{display:flex;flex-wrap:wrap;gap:0.55rem}
+.move-btn{font-family:'Share Tech Mono',monospace;font-size:0.78rem;letter-spacing:0.05em;padding:0.6rem 1.15rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--panel2);color:var(--text);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px}
+.move-btn:hover:not(:disabled){border-color:var(--teal);color:var(--teal);transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,229,192,0.2)}
+.move-btn.invalid-move{border-color:rgba(255,77,109,0.18);opacity:0.35;cursor:not-allowed}
+.move-btn:disabled{opacity:0.28;cursor:not-allowed!important;transform:none!important}
+.move-btn .mi{color:var(--M)}
+.move-btn .ci{color:var(--C)}
+
+/* ACTION BUTTONS */
+#action-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.7rem;margin-bottom:1rem}
+.act-btn{font-family:'Pirata One',cursive;font-size:0.95rem;letter-spacing:0.04em;padding:0.72rem 0.5rem;border-radius:12px;border:1.5px solid transparent;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.act-btn:hover{transform:translateY(-3px)}
+.act-btn:active{transform:translateY(-1px)}
+.act-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+#btn-solve{background:linear-gradient(135deg,#005540,var(--teal2));color:#001a14;border-color:var(--teal2);box-shadow:0 4px 20px rgba(0,229,192,0.25)}
+#btn-solve:hover{box-shadow:0 8px 30px rgba(0,229,192,0.4)}
+#btn-step{background:linear-gradient(135deg,#2a1f00,var(--gold2));color:#1a0f00;border-color:var(--gold2);box-shadow:0 4px 20px rgba(255,204,68,0.2)}
+#btn-step:hover{box-shadow:0 8px 28px rgba(255,204,68,0.35)}
+#btn-hint{background:linear-gradient(135deg,#002a40,var(--blue));color:#001828;border-color:var(--blue);box-shadow:0 4px 20px rgba(77,166,255,0.2)}
+#btn-hint:hover{box-shadow:0 8px 28px rgba(77,166,255,0.35)}
+#btn-reset{background:var(--panel2);color:var(--text);border-color:var(--border2)}
+#btn-reset:hover{border-color:var(--red);color:var(--red)}
+
+/* MSG LOG */
+#msg-log{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1rem}
+#msg-header{font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;color:var(--muted);padding:0.4rem 1rem;background:linear-gradient(90deg,var(--border),transparent);border-bottom:1px solid var(--border)}
+#msg-list{overflow-y:auto;max-height:165px;padding:0.5rem;display:flex;flex-direction:column-reverse;gap:0.3rem}
+#msg-list::-webkit-scrollbar{width:3px}
+#msg-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.msg-item{display:flex;align-items:flex-start;gap:0.5rem;padding:0.4rem 0.7rem;border-radius:8px;font-size:0.9rem;line-height:1.4;animation:msgpop 0.3s ease}
+@keyframes msgpop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg-item.info {background:rgba(90,120,154,0.08);color:var(--muted)}
+.msg-item.ok   {background:rgba(0,229,192,0.06);color:var(--teal);border-left:2px solid var(--teal)}
+.msg-item.warn {background:rgba(255,204,68,0.07);color:var(--gold);border-left:2px solid var(--gold)}
+.msg-item.error{background:rgba(255,77,109,0.08);color:var(--red);border-left:2px solid var(--red)}
+.msg-item.win  {background:rgba(255,204,68,0.12);color:var(--gold);border-left:3px solid var(--gold);font-size:1rem}
+.msg-ts{font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--muted);opacity:0.45;white-space:nowrap;margin-top:2px}
+
+/* SOLUTION PANEL */
+#sol-section{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1rem;display:none}
+#sol-head{font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;color:var(--teal);padding:0.4rem 1rem;background:linear-gradient(90deg,rgba(0,229,192,0.07),transparent);border-bottom:1px solid rgba(0,229,192,0.1);display:flex;justify-content:space-between;align-items:center}
+#sol-steps{padding:0.7rem;display:flex;flex-wrap:wrap;gap:0.4rem;max-height:180px;overflow-y:auto}
+.sol-step{font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:0.33rem 0.65rem;border-radius:6px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;gap:5px;transition:all 0.3s;white-space:nowrap}
+.sol-step.current{background:rgba(0,229,192,0.1);border-color:var(--teal);color:var(--teal);box-shadow:0 0 12px rgba(0,229,192,0.15);transform:scale(1.06)}
+.sol-step.done{opacity:0.3;text-decoration:line-through}
+.sol-step .sn{color:var(--muted);opacity:0.5;font-size:0.62rem}
+
+/* HISTORY */
+#hist-section{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1rem;display:none}
+#hist-section.shown{display:block}
+#hist-head{font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;color:var(--gold);padding:0.4rem 1rem;background:linear-gradient(90deg,rgba(255,204,68,0.06),transparent);border-bottom:1px solid rgba(255,204,68,0.1);display:flex;justify-content:space-between;align-items:center}
+.hist-tog{font-size:0.68rem;cursor:pointer;background:none;border:none;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:0.1em}
+#hist-wrap{overflow-x:auto;max-height:220px;overflow-y:auto}
+#hist-wrap::-webkit-scrollbar{width:3px;height:3px}
+#hist-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:0.7rem}
+th{padding:0.4rem 0.7rem;background:var(--panel2);color:var(--muted);font-weight:400;border-bottom:1px solid var(--border);white-space:nowrap;text-align:center}
+td{padding:0.32rem 0.7rem;border-bottom:1px solid rgba(30,48,80,0.45);text-align:center;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr.cur-row td{background:rgba(0,229,192,0.05);color:var(--teal)}
+tr.bad-row td{background:rgba(255,77,109,0.04);color:var(--red)}
+td.mc{color:var(--M)}td.cc{color:var(--C)}td.bc{color:var(--gold)}td.sc{color:var(--muted)}
+
+/* ACCORDIONS */
+.accordion{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:0.8rem}
+.acc-head{font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.15em;padding:0.65rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background 0.2s}
+.acc-head:hover{background:rgba(255,255,255,0.02)}
+.acc-icon{font-size:0.8rem;transition:transform 0.3s;color:var(--muted)}
+.acc-head.open .acc-icon{transform:rotate(180deg)}
+.acc-body{max-height:0;overflow:hidden;transition:max-height 0.4s ease;padding:0 1rem}
+.acc-body.open{max-height:600px;padding:0 1rem 1.2rem}
+.acc-body p,.acc-body li{font-size:0.93rem;color:var(--muted);line-height:1.75}
+.acc-body ul{padding-left:1.2rem;margin-top:0.4rem}
+.acc-body li{margin-bottom:0.25rem}
+.acc-body li strong{color:var(--text)}
+.acc-body h4{font-family:'Pirata One',cursive;font-size:1rem;color:var(--gold);margin:0.8rem 0 0.3rem;letter-spacing:0.05em}
+.bfs-code{font-family:'Share Tech Mono',monospace;font-size:0.7rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.85rem;margin-top:0.6rem;color:var(--teal);line-height:1.85;white-space:pre;overflow-x:auto}
+
+/* WIN OVERLAY */
+#win-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.87);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(7px)}
+#win-overlay.show{display:flex}
+#win-card{background:linear-gradient(135deg,#0d1f10,#0a1520);border:1px solid var(--gold);border-radius:24px;padding:2.5rem;text-align:center;max-width:420px;width:90%;box-shadow:0 0 80px rgba(255,204,68,0.22);animation:winpop 0.5s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes winpop{from{transform:scale(0.4);opacity:0}to{transform:scale(1);opacity:1}}
+#win-card h2{font-family:'Pirata One',cursive;font-size:2.5rem;color:var(--gold);text-shadow:0 0 30px rgba(255,204,68,0.5);margin-bottom:0.4rem}
+#win-card p{font-size:1.05rem;color:var(--muted);margin:0.35rem 0}
+.win-stats{display:flex;gap:1rem;justify-content:center;margin:1.2rem 0;font-family:'Share Tech Mono',monospace;font-size:0.78rem}
+.ws{text-align:center;background:rgba(255,204,68,0.08);border:1px solid rgba(255,204,68,0.2);padding:0.55rem 1rem;border-radius:10px}
+.ws-val{font-size:1.9rem;color:var(--gold);display:block}
+.ws-lbl{color:var(--muted);font-size:0.62rem}
+.win-btn{font-family:'Pirata One',cursive;font-size:1.1rem;padding:0.72rem 2rem;border-radius:12px;border:none;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a0f00;cursor:pointer;margin-top:1rem;transition:all 0.2s}
+.win-btn:hover{transform:scale(1.05);box-shadow:0 0 30px rgba(255,204,68,0.4)}
+
+/* CONFETTI */
+.cfp{position:fixed;animation:cfall var(--dur,3s) var(--del,0s) ease-in forwards;pointer-events:none;z-index:1001}
+@keyframes cfall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+/* RESPONSIVE */
+@media(max-width:680px){
+  #scene{grid-template-columns:1fr 150px 1fr;min-height:260px}
+  #action-row{grid-template-columns:1fr 1fr}
+  .config-grid{grid-template-columns:1fr 1fr}
+  .apply-btn{grid-column:1/-1}
+  #boat-svg{width:95px}
+  #boat-passengers{width:95px}
+}
+@media(max-width:440px){
+  #scene{grid-template-columns:1fr 120px 1fr}
+  #boat-svg{width:78px}
+  #boat-passengers{width:78px}
+}
+
+/* shake animation */
+@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+
+<!-- WIN OVERLAY -->
+<div id="win-overlay">
+  <div id="win-card">
+    <div style="font-size:3rem;margin-bottom:0.4rem">🏆</div>
+    <h2>Puzzle Solved!</h2>
+    <p>All souls safely crossed the river</p>
+    <div class="win-stats">
+      <div class="ws"><span class="ws-val" id="ws-steps">0</span><span class="ws-lbl">STEPS</span></div>
+      <div class="ws"><span class="ws-val" id="ws-opt">—</span><span class="ws-lbl">OPTIMAL</span></div>
+      <div class="ws"><span class="ws-val" id="ws-rating">★★★</span><span class="ws-lbl">RATING</span></div>
+    </div>
+    <p id="ws-msg" style="color:var(--teal);font-size:0.95rem"></p>
+    <button class="win-btn" onclick="closeWin();resetGame()">⚓ Play Again</button>
+  </div>
+</div>
+
+<div id="app">
+
+<!-- HEADER -->
+<header>
+  <span class="hskull">💀</span>
+  <h1>Missionaries &amp; Cannibals</h1>
+  <div class="subtitle">A River-Crossing Puzzle of Logic &amp; Survival</div>
+  <div class="divider"></div>
+</header>
+
+<!-- CONFIG PANEL -->
+<div id="config-section">
+  <div class="config-grid">
+
+    <!-- Missionaries -->
+    <div class="config-group">
+      <div class="config-label">🧑‍⚕️ Missionaries</div>
+      <div class="counter-wrap">
+        <div class="counter-row">
+          <button class="cnt-btn minus" onclick="adj('M',-1)" title="Remove a missionary">−</button>
+          <div class="cnt-val blue" id="cfg-m">3</div>
+          <button class="cnt-btn plus"  onclick="adj('M',+1)" title="Add a missionary">+</button>
+        </div>
+        <div class="range-hint">1 – 6</div>
+        <div class="cnt-sub">Must never be<br>outnumbered by cannibals</div>
+      </div>
+    </div>
+
+    <!-- Boat Capacity -->
+    <div class="config-group">
+      <div class="config-label">⛵ Boat Capacity</div>
+      <div class="counter-wrap" style="background:rgba(255,204,68,0.05);border-color:rgba(255,204,68,0.2)">
+        <div class="counter-row">
+          <button class="cnt-btn minus" onclick="adj('B',-1)" title="Reduce boat capacity">−</button>
+          <div class="cnt-val gold" id="cfg-b">2</div>
+          <button class="cnt-btn plus"  onclick="adj('B',+1)" title="Increase boat capacity">+</button>
+        </div>
+        <div class="range-hint">1 – 4</div>
+        <div class="cnt-sub">Max people<br>per crossing</div>
+      </div>
+    </div>
+
+    <!-- Cannibals -->
+    <div class="config-group">
+      <div class="config-label">💀 Cannibals</div>
+      <div class="counter-wrap">
+        <div class="counter-row">
+          <button class="cnt-btn minus" onclick="adj('C',-1)" title="Remove a cannibal">−</button>
+          <div class="cnt-val red" id="cfg-c">3</div>
+          <button class="cnt-btn plus"  onclick="adj('C',+1)" title="Add a cannibal">+</button>
+        </div>
+        <div class="range-hint">1 – 6</div>
+        <div class="cnt-sub">Dangerous when they<br>outnumber missionaries</div>
+      </div>
+    </div>
+
+    <!-- Preview row -->
+    <div style="grid-column:1/-1;text-align:center">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;color:var(--muted);margin-bottom:4px">PREVIEW — ALL PEOPLE ON LEFT BANK</div>
+      <div id="cfg-preview"></div>
+    </div>
+
+    <button class="apply-btn" onclick="applyConfig()">⚓ Apply &amp; Start New Game</button>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div id="stats-bar">
+  <div class="stat-chip">⚡ Steps <span class="val" id="stat-steps">0</span></div>
+  <div class="stat-chip" id="chip-safety">✅ <span>All Safe</span></div>
+  <div class="stat-chip">🎯 Move <span class="val" id="stat-total">6</span> people right</div>
+  <div class="stat-chip">⛵ Boat: <span class="val" id="stat-boat">LEFT</span></div>
+  <div class="stat-chip">🏆 Optimal: <span class="val" id="stat-opt">?</span> steps</div>
+</div>
+
+<!-- SCENE -->
+<div id="scene-wrap">
+  <div id="scene">
+    <!-- LEFT BANK -->
+    <div class="bank" id="left-bank">
+      <div class="bank-header" id="lhead">◀ LEFT BANK · START</div>
+      <div class="people-area" id="left-people"></div>
+      <div class="bank-counts">
+        <span class="bc-m">🧑‍⚕️ <span class="bc-num" id="lm">3</span></span>
+        <span class="bc-c">💀 <span class="bc-num" id="lc">3</span></span>
+      </div>
+    </div>
+
+    <!-- RIVER -->
+    <div id="river">
+      <div class="wl"></div><div class="wl"></div><div class="wl"></div><div class="wl"></div>
+      <div id="boat-track">
+        <div id="boat-shell">
+          <div id="boat-passengers"></div>
+          <svg id="boat-svg" viewBox="0 0 130 55" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="65" cy="50" rx="55" ry="5" fill="rgba(0,0,0,0.22)"/>
+            <path d="M8 28 Q65 52 122 28 L116 42 Q65 62 14 42 Z" fill="#6B4226" stroke="#3d2010" stroke-width="1.5"/>
+            <path d="M15 28 Q65 39 115 28" fill="none" stroke="#8B5E3C" stroke-width="2.5"/>
+            <path d="M30 30 Q65 38 100 30" fill="none" stroke="#5a3820" stroke-width="0.8" stroke-dasharray="3,4"/>
+            <line x1="65" y1="5" x2="65" y2="29" stroke="#4a2e10" stroke-width="3" stroke-linecap="round"/>
+            <line x1="65" y1="16" x2="88" y2="23" stroke="#4a2e10" stroke-width="2" stroke-linecap="round"/>
+            <path d="M65 6 L90 22 L65 28 Z" fill="rgba(210,180,140,0.55)" stroke="#c8a96e" stroke-width="1.2"/>
+            <path d="M65 15 L82 23 L65 27 Z" fill="rgba(0,0,0,0.08)"/>
+            <path d="M65 5 L78 9 L65 13 Z" fill="#ffcc44"/>
+            <line x1="20" y1="32" x2="6"   y2="46" stroke="#5a3820" stroke-width="2" stroke-linecap="round"/>
+            <line x1="110" y1="32" x2="124" y2="46" stroke="#5a3820" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="river-label">～ THE TREACHEROUS RIVER ～</div>
+    </div>
+
+    <!-- RIGHT BANK -->
+    <div class="bank" id="right-bank">
+      <div class="bank-header" id="rhead">RIGHT BANK · GOAL ▶</div>
+      <div class="people-area" id="right-people"></div>
+      <div class="bank-counts">
+        <span class="bc-m">🧑‍⚕️ <span class="bc-num" id="rm">0</span></span>
+        <span class="bc-c">💀 <span class="bc-num" id="rc">0</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE SECTION -->
+<div id="move-section">
+  <div id="dir-badge">⛵ Boat on LEFT — Choose who crosses RIGHT →</div>
+  <div id="move-btns"></div>
+</div>
+
+<!-- ACTION BUTTONS -->
+<div id="action-row">
+  <button class="act-btn" id="btn-solve" onclick="autoSolve()">⚡ Auto-Solve</button>
+  <button class="act-btn" id="btn-step"  onclick="stepSolve()">👣 Step</button>
+  <button class="act-btn" id="btn-hint"  onclick="showHint()">💡 Hint</button>
+  <button class="act-btn" id="btn-reset" onclick="resetGame()">↺ Reset</button>
+</div>
+
+<!-- MESSAGE LOG -->
+<div id="msg-log">
+  <div id="msg-header">📜 EVENT LOG</div>
+  <div id="msg-list"></div>
+</div>
+
+<!-- SOLUTION PATH -->
+<div id="sol-section">
+  <div id="sol-head">
+    <span>🔍 BFS SOLUTION PATH</span>
+    <span id="sol-count"></span>
+  </div>
+  <div id="sol-steps"></div>
+</div>
+
+<!-- STATE HISTORY -->
+<div id="hist-section">
+  <div id="hist-head">
+    <span>📊 STATE HISTORY TABLE</span>
+    <button class="hist-tog" onclick="toggleHist()">▼ COLLAPSE</button>
+  </div>
+  <div id="hist-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th><th>Move</th><th>Dir</th>
+          <th>L·M</th><th>L·C</th><th>R·M</th><th>R·C</th>
+          <th>Boat</th><th>Safe</th>
+        </tr>
+      </thead>
+      <tbody id="hist-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ACCORDIONS -->
+<div class="accordion">
+  <div class="acc-head" onclick="togAcc(this)">
+    <span>⚔️  HOW TO PLAY &amp; RULES</span>
+    <span class="acc-icon">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>The Challenge</h4>
+    <p>Get every person from the left bank to the right bank. The boat carries up to its configured capacity but at least 1 person must row it.</p>
+    <h4>The Sacred Rules</h4>
+    <ul>
+      <li><strong>🧑‍⚕️ Missionaries must never be outnumbered</strong> on either bank — or they get eaten!</li>
+      <li><strong>⛵ The boat cannot cross empty</strong> — someone must paddle it.</li>
+      <li><strong>Both banks are checked</strong> after every move.</li>
+      <li><strong>Exception:</strong> A bank with zero missionaries is always safe, even with many cannibals.</li>
+    </ul>
+    <h4>Using the + / − Buttons</h4>
+    <p>The <strong>Setup panel</strong> at the top lets you change the puzzle difficulty:</p>
+    <ul>
+      <li><strong>+ Missionaries</strong> — add another missionary to the left bank</li>
+      <li><strong>− Missionaries</strong> — remove a missionary (min 1)</li>
+      <li><strong>+ / − Cannibals</strong> — same for cannibals (min 1, max 6)</li>
+      <li><strong>+ / − Boat</strong> — change how many people fit in the boat per trip</li>
+    </ul>
+    <p>Hit <strong>Apply &amp; Start New Game</strong> to begin with your chosen numbers.</p>
+  </div>
+</div>
+
+<div class="accordion">
+  <div class="acc-head" onclick="togAcc(this)">
+    <span>🤖  BFS ALGORITHM EXPLAINED</span>
+    <span class="acc-icon">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>What is BFS?</h4>
+    <p>Breadth-First Search explores every reachable game state level-by-level, guaranteeing the shortest (fewest moves) solution.</p>
+    <h4>State Space</h4>
+    <div class="bfs-code">State  = ( leftM, leftC, boatSide )
+rightM = totalM − leftM
+rightC = totalC − leftC
+
+Start : (3, 3, LEFT)   →   Goal : (0, 0, RIGHT)
+
+Queue: [(3,3,L,path=[])]
+  Pop (3,3,L) → try all valid boat loads
+    (3,3,L) + send 1M → new state (2,3,R) — SAFE ✓ enqueue
+    (3,3,L) + send 2M → new state (1,3,R) — UNSAFE ✗ skip
+    (3,3,L) + send 1C → new state (3,2,R) — SAFE ✓ enqueue
+    ...
+  First time goal (0,0,R) is dequeued = optimal path!</div>
+    <h4>Why It Works</h4>
+    <ul>
+      <li><strong>Completeness:</strong> Finds a solution if one exists</li>
+      <li><strong>Optimality:</strong> Guarantees minimum number of moves</li>
+      <li><strong>States explored:</strong> (M+1)×(C+1)×2 — e.g. 32 for classic 3,3</li>
+    </ul>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+let CFG  = { M:3, C:3, B:2 };   // active game config
+let TCFG = { M:3, C:3, B:2 };   // staged (before Apply)
+
+// ─── Adjust staged config ───
+function adj(type, delta) {
+  const limits = { M:[1,6], C:[1,6], B:[1,4] };
+  const [lo,hi] = limits[type];
+  TCFG[type] = Math.max(lo, Math.min(hi, TCFG[type]+delta));
+  const id = type==='M'?'cfg-m':type==='C'?'cfg-c':'cfg-b';
+  const el = document.getElementById(id);
+  el.textContent = TCFG[type];
+  // bump animation
+  el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');
+  updatePreview();
+}
+
+function updatePreview() {
+  const el = document.getElementById('cfg-preview');
+  el.innerHTML='';
+  for(let i=0;i<TCFG.M;i++){const s=document.createElement('span');s.className='prev-m';s.textContent='🧑‍⚕️';el.appendChild(s)}
+  for(let i=0;i<TCFG.C;i++){const s=document.createElement('span');s.className='prev-c';s.textContent='💀';el.appendChild(s)}
+}
+
+function applyConfig() {
+  CFG = {...TCFG};
+  document.getElementById('stat-total').textContent = CFG.M+CFG.C;
+  addLog('ok',`⚙️ Config applied: ${CFG.M}M · ${CFG.C}C · boat capacity ${CFG.B}`);
+  resetGame();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════════
+let G = {};
+
+function initGame() {
+  G = {
+    lM: CFG.M, lC: CFG.C,
+    boat: 'left',
+    steps: 0,
+    over: false,
+    solving: false,
+    bfsSol: [],
+  };
+  G.bfsSol = bfsSolve(CFG.M, CFG.C, CFG.B);
+  document.getElementById('stat-opt').textContent = G.bfsSol.length || '?';
+  clearHist();
+  addHistRow('START','—','—',CFG.M,CFG.C,0,0,'LEFT',true);
+  document.getElementById('hist-section').classList.add('shown');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BFS SOLVER
+// ═══════════════════════════════════════════════════════════════
+function bfsSolve(totM, totC, cap) {
+  const moves=[];
+  for(let m=0;m<=cap;m++)for(let c=0;c<=cap;c++)if(m+c>=1&&m+c<=cap)moves.push([m,c]);
+  const queue=[ [[totM,totC,0],[]] ];
+  const vis=new Set([[totM,totC,0].join(',')]);
+  while(queue.length){
+    const [[lm,lc,b],path]=queue.shift();
+    if(lm===0&&lc===0&&b===1) return path;
+    for(const [dm,dc] of moves){
+      let nlm,nlc,nb;
+      if(b===0){
+        if(dm>lm||dc>lc) continue;
+        nlm=lm-dm;nlc=lc-dc;nb=1;
+      } else {
+        const rm=totM-lm,rc=totC-lc;
+        if(dm>rm||dc>rc) continue;
+        nlm=lm+dm;nlc=lc+dc;nb=0;
+      }
+      const nrm=totM-nlm,nrc=totC-nlc;
+      if(nlm>0&&nlc>nlm) continue;
+      if(nrm>0&&nrc>nrm) continue;
+      const k=[nlm,nlc,nb].join(',');
+      if(!vis.has(k)){
+        vis.add(k);
+        queue.push([[nlm,nlc,nb],[...path,{dm,dc,dir:b===0?'→':'←',from:b===0?'left':'right',to:b===0?'right':'left',after:[nlm,nlc,nb]}]]);
+      }
+    }
+  }
+  return [];
+}
+
+function solveFromNow(){
+  const totM=CFG.M,totC=CFG.C,cap=CFG.B;
+  const b=G.boat==='left'?0:1;
+  const moves=[];
+  for(let m=0;m<=cap;m++)for(let c=0;c<=cap;c++)if(m+c>=1&&m+c<=cap)moves.push([m,c]);
+  const queue=[ [[G.lM,G.lC,b],[]] ];
+  const vis=new Set([[G.lM,G.lC,b].join(',')]);
+  while(queue.length){
+    const [[lm,lc,bb],path]=queue.shift();
+    if(lm===0&&lc===0&&bb===1) return path;
+    for(const [dm,dc] of moves){
+      let nlm,nlc,nb;
+      if(bb===0){
+        if(dm>lm||dc>lc) continue;
+        nlm=lm-dm;nlc=lc-dc;nb=1;
+      } else {
+        const rm=totM-lm,rc=totC-lc;
+        if(dm>rm||dc>rc) continue;
+        nlm=lm+dm;nlc=lc+dc;nb=0;
+      }
+      const nrm=totM-nlm,nrc=totC-nlc;
+      if(nlm>0&&nlc>nlm) continue;
+      if(nrm>0&&nrc>nrm) continue;
+      const k=[nlm,nlc,nb].join(',');
+      if(!vis.has(k)){vis.add(k);queue.push([[nlm,nlc,nb],[...path,{dm,dc,dir:bb===0?'→':'←',from:bb===0?'left':'right',to:bb===0?'right':'left'}]])}
+    }
+  }
+  return [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VALIDATE
+// ═══════════════════════════════════════════════════════════════
+function validate(dm,dc){
+  const totM=CFG.M,totC=CFG.C;
+  if(G.boat==='left'){
+    if(dm>G.lM) return{ok:false,why:`Only ${G.lM}M on left.`};
+    if(dc>G.lC) return{ok:false,why:`Only ${G.lC}C on left.`};
+  } else {
+    const rm=totM-G.lM,rc=totC-G.lC;
+    if(dm>rm) return{ok:false,why:`Only ${rm}M on right.`};
+    if(dc>rc) return{ok:false,why:`Only ${rc}C on right.`};
+  }
+  let nlm=G.lM,nlc=G.lC;
+  if(G.boat==='left'){nlm-=dm;nlc-=dc;}else{nlm+=dm;nlc+=dc;}
+  const nrm=totM-nlm,nrc=totC-nlc;
+  if(nlm<0||nlc<0||nrm<0||nrc<0) return{ok:false,why:'Negative count.'};
+  if(nlm>0&&nlc>nlm) return{ok:false,why:`LEFT: ${nlc}C > ${nlm}M — cannibals feast!`};
+  if(nrm>0&&nrc>nrm) return{ok:false,why:`RIGHT: ${nrc}C > ${nrm}M — cannibals feast!`};
+  return{ok:true};
+}
+
+function isSafe(lm,lc,rm,rc){
+  return !((lm>0&&lc>lm)||(rm>0&&rc>rm));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  APPLY MOVE
+// ═══════════════════════════════════════════════════════════════
+function applyMove(dm,dc){
+  if(G.boat==='left'){G.lM-=dm;G.lC-=dc;G.boat='right';}
+  else              {G.lM+=dm;G.lC+=dc;G.boat='left';}
+  G.steps++;
+}
+
+function playerMove(dm,dc){
+  if(G.over||G.solving) return;
+  const v=validate(dm,dc);
+  if(!v.ok){addLog('error','⛔ '+v.why);shake();return;}
+  const from=G.boat;
+  applyMove(dm,dc);
+  const rm=CFG.M-G.lM,rc=CFG.C-G.lC;
+  const safe=isSafe(G.lM,G.lC,rm,rc);
+  addLog('ok',`⛵ ${descMove(dm,dc)} from ${from} → ${G.boat} bank`);
+  addHistRow(G.steps,descMove(dm,dc),from==='left'?'→':'←',G.lM,G.lC,rm,rc,G.boat.toUpperCase(),safe);
+  render();
+  checkWin();
+}
+
+function descMove(dm,dc){
+  const p=[];if(dm>0)p.push(dm+'M');if(dc>0)p.push(dc+'C');return p.join('+');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function render(){
+  const rm=CFG.M-G.lM,rc=CFG.C-G.lC;
+  document.getElementById('lm').textContent=G.lM;
+  document.getElementById('lc').textContent=G.lC;
+  document.getElementById('rm').textContent=rm;
+  document.getElementById('rc').textContent=rc;
+  document.getElementById('stat-steps').textContent=G.steps;
+  document.getElementById('stat-boat').textContent=G.boat.toUpperCase();
+
+  renderBank('left-people',G.lM,G.lC);
+  renderBank('right-people',rm,rc);
+
+  const shell=document.getElementById('boat-shell');
+  shell.classList.toggle('right',G.boat==='right');
+  document.getElementById('boat-passengers').innerHTML='';
+
+  const badge=document.getElementById('dir-badge');
+  if(G.boat==='left'){badge.className='';badge.textContent='⛵ Boat on LEFT — Choose who crosses RIGHT →';}
+  else               {badge.className='right';badge.textContent='← Boat on RIGHT — Choose who returns LEFT';}
+
+  document.getElementById('left-bank').classList.toggle('boat-here',G.boat==='left');
+  document.getElementById('right-bank').classList.toggle('boat-here',G.boat==='right');
+
+  const ld=G.lM>0&&G.lC>G.lM,rd=rm>0&&rc>rm;
+  document.getElementById('left-bank').classList.toggle('danger',ld);
+  document.getElementById('right-bank').classList.toggle('danger',rd);
+  const chip=document.getElementById('chip-safety');
+  if(ld||rd){chip.className='stat-chip danger';chip.innerHTML='⚠️ <span>UNSAFE!</span>';}
+  else      {chip.className='stat-chip safe';chip.innerHTML='✅ <span>All Safe</span>';}
+
+  buildMoveBtns();
+}
+
+function renderBank(id,m,c){
+  const el=document.getElementById(id);el.innerHTML='';
+  for(let i=0;i<m;i++)el.appendChild(mkPerson('missionary'));
+  for(let i=0;i<c;i++)el.appendChild(mkPerson('cannibal'));
+}
+
+function mkPerson(type){
+  const d=document.createElement('div');
+  d.className='person '+type;
+  d.innerHTML=`<div class="ico">${type==='missionary'?'🧑‍⚕️':'💀'}</div><div class="lbl">${type==='missionary'?'M':'C'}</div>`;
+  return d;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BUILD MOVE BUTTONS
+// ═══════════════════════════════════════════════════════════════
+function buildMoveBtns(){
+  const wrap=document.getElementById('move-btns');
+  wrap.innerHTML='';
+  const cap=CFG.B;
+  for(let m=0;m<=cap;m++){
+    for(let c=0;c<=cap;c++){
+      if(m+c<1||m+c>cap) continue;
+      const v=validate(m,c);
+      const btn=document.createElement('button');
+      btn.className='move-btn'+(v.ok?'':' invalid-move');
+      btn.disabled=G.over||G.solving||!v.ok;
+      btn.title=v.ok?`Send ${descMove(m,c)} across the river`:v.why;
+      const parts=[];
+      if(m>0) parts.push(`<span class="mi">🧑‍⚕️ ${m}M</span>`);
+      if(c>0) parts.push(`<span class="ci">💀 ${c}C</span>`);
+      btn.innerHTML=parts.join('<span style="color:var(--muted)"> + </span>');
+      btn.onclick=()=>playerMove(m,c);
+      wrap.appendChild(btn);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WIN
+// ═══════════════════════════════════════════════════════════════
+function checkWin(){
+  if(G.lM===0&&G.lC===0&&G.boat==='right'){
+    G.over=true;
+    addLog('win',`🏆 SOLVED in ${G.steps} steps!`);
+    const opt=G.bfsSol.length||G.steps;
+    const rt=G.steps<=opt?'★★★':G.steps<=opt+2?'★★☆':'★☆☆';
+    const msg=G.steps<=opt?'Perfect — optimal solution!':G.steps<=opt+2?'Great job — near optimal!':'Solved! Try fewer steps next time.';
+    document.getElementById('ws-steps').textContent=G.steps;
+    document.getElementById('ws-opt').textContent=opt;
+    document.getElementById('ws-rating').textContent=rt;
+    document.getElementById('ws-msg').textContent=msg;
+    document.getElementById('win-overlay').classList.add('show');
+    confetti();
+  }
+}
+
+function closeWin(){document.getElementById('win-overlay').classList.remove('show');document.querySelectorAll('.cfp').forEach(e=>e.remove())}
+
+function confetti(){
+  const cols=['#ffcc44','#00e5c0','#4da6ff','#ff4d6d','#ffffff'];
+  for(let i=0;i<80;i++){
+    const e=document.createElement('div');e.className='cfp';
+    const sz=4+Math.random()*8;
+    e.style.cssText=`left:${Math.random()*100}%;top:-10px;width:${sz}px;height:${sz}px;border-radius:${Math.random()>0.5?'50%':'2px'};background:${cols[~~(Math.random()*cols.length)]};--dur:${2+Math.random()*3}s;--del:${Math.random()*2}s`;
+    document.body.appendChild(e);e.addEventListener('animationend',()=>e.remove());
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HINT
+// ═══════════════════════════════════════════════════════════════
+function showHint(){
+  if(G.over) return;
+  const sol=solveFromNow();
+  if(!sol.length){addLog('warn','⚠️ No path found. Try Reset.');return;}
+  const s=sol[0];
+  addLog('warn',`💡 Hint: Send ${descMove(s.dm,s.dc)} from ${s.from} bank ${s.dir}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTO SOLVE
+// ═══════════════════════════════════════════════════════════════
+async function autoSolve(){
+  if(G.solving) return;
+  resetGame();await sleep(400);
+  const sol=bfsSolve(CFG.M,CFG.C,CFG.B);
+  if(!sol.length){addLog('error','❌ No solution for this config!');return;}
+  G.solving=true;setActBtns(true);
+  showSolPanel(sol);
+  addLog('ok',`⚡ Auto-solving: ${sol.length} moves...`);
+  for(let i=0;i<sol.length;i++){
+    const st=sol[i];
+    hlSolStep(i);
+    const bp=document.getElementById('boat-passengers');
+    bp.innerHTML='';
+    for(let m=0;m<st.dm;m++)bp.appendChild(mkPerson('missionary'));
+    for(let c=0;c<st.dc;c++)bp.appendChild(mkPerson('cannibal'));
+    addLog('ok',`Step ${i+1}/${sol.length}: ${descMove(st.dm,st.dc)} ${st.dir} → ${st.to}`);
+    await sleep(700);
+    applyMove(st.dm,st.dc);
+    const rm=CFG.M-G.lM,rc=CFG.C-G.lC;
+    addHistRow(G.steps,descMove(st.dm,st.dc),st.dir,G.lM,G.lC,rm,rc,G.boat.toUpperCase(),isSafe(G.lM,G.lC,rm,rc));
+    render();await sleep(800);
+  }
+  G.solving=false;setActBtns(false);checkWin();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STEP SOLVE
+// ═══════════════════════════════════════════════════════════════
+function stepSolve(){
+  if(G.over||G.solving) return;
+  const sol=solveFromNow();
+  if(!sol.length){addLog('warn','⚠️ No path from here. Reset?');return;}
+  showSolPanel(sol);hlSolStep(0);
+  const s=sol[0];
+  addLog('warn',`👣 Performing next BFS step: ${descMove(s.dm,s.dc)} ${s.dir}`);
+  playerMove(s.dm,s.dc);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SOLUTION PANEL
+// ═══════════════════════════════════════════════════════════════
+function showSolPanel(sol){
+  const sec=document.getElementById('sol-section');
+  sec.style.display='block';
+  document.getElementById('sol-count').textContent=sol.length+' MOVES';
+  const wrap=document.getElementById('sol-steps');wrap.innerHTML='';
+  sol.forEach((s,i)=>{
+    const d=document.createElement('div');d.className='sol-step';d.id='ss'+i;
+    d.innerHTML=`<span class="sn">${i+1}</span>${s.dir} ${descMove(s.dm,s.dc)} → ${s.to}`;
+    wrap.appendChild(d);
+  });
+}
+function hlSolStep(i){
+  document.querySelectorAll('.sol-step').forEach((el,j)=>{
+    el.className=j<i?'sol-step done':j===i?'sol-step current':'sol-step';
+  });
+  document.getElementById('ss'+i)?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════════════════════
+function clearHist(){document.getElementById('hist-body').innerHTML=''}
+function addHistRow(step,move,dir,lm,lc,rm,rc,boat,safe){
+  const tb=document.getElementById('hist-body');
+  const tr=document.createElement('tr');
+  tr.className=step==='START'?'cur-row':(!safe?'bad-row':'');
+  tr.innerHTML=`<td class="sc">${step}</td><td>${move}</td><td class="bc">${dir}</td><td class="mc">${lm}</td><td class="cc">${lc}</td><td class="mc">${rm}</td><td class="cc">${rc}</td><td class="bc">${boat}</td><td>${safe?'✅':'⚠️'}</td>`;
+  tb.insertBefore(tr,tb.firstChild);
+}
+function toggleHist(){
+  const w=document.getElementById('hist-wrap');const b=document.querySelector('.hist-tog');
+  const h=w.style.display!=='none';w.style.display=h?'none':'';b.textContent=h?'▶ EXPAND':'▼ COLLAPSE';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════════════════════
+function resetGame(){
+  G.solving=false;closeWin();
+  initGame();
+  document.getElementById('sol-section').style.display='none';
+  document.getElementById('sol-steps').innerHTML='';
+  setActBtns(false);
+  render();
+  addLog('info','↺ Game reset! Move everyone to the right bank.');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function addLog(type,text){
+  const list=document.getElementById('msg-list');
+  const d=document.createElement('div');d.className='msg-item '+type;
+  const now=new Date();
+  const ts=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  d.innerHTML=`<span style="flex:1">${text}</span><span class="msg-ts">${ts}</span>`;
+  list.insertBefore(d,list.firstChild);
+  while(list.children.length>25)list.removeChild(list.lastChild);
+}
+
+function setActBtns(dis){['btn-solve','btn-step','btn-hint','btn-reset'].forEach(id=>document.getElementById(id).disabled=dis)}
+
+function shake(){
+  const el=document.getElementById('move-section');
+  el.style.animation='none';void el.offsetWidth;el.style.animation='shakeX 0.4s ease';
+}
+
+function togAcc(head){head.classList.toggle('open');head.nextElementSibling.classList.toggle('open')}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// ═══════════════════════════════════════════════════════════════
+//  STARS + BUBBLES
+// ═══════════════════════════════════════════════════════════════
+function genStars(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<130;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=0.5+Math.random()*2;
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${sz}px;height:${sz}px;--d:${2+Math.random()*4}s;--delay:${Math.random()*5}s`;
+    c.appendChild(s);
+  }
+}
+function genBubbles(){
+  const r=document.getElementById('river');
+  for(let i=0;i<14;i++){
+    const b=document.createElement('div');b.className='bubble';
+    const sz=3+Math.random()*10;
+    b.style.cssText=`left:${10+Math.random()*80}%;width:${sz}px;height:${sz}px;--dur:${4+Math.random()*7}s;--del:${Math.random()*9}s;--dx:${(Math.random()-0.5)*30}px`;
+    r.appendChild(b);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════════
+genStars();genBubbles();updatePreview();initGame();render();
+addLog('info','⚓ Welcome! Use + / − buttons to set missionaries, cannibals & boat size, then click Apply.');
+addLog('info','🧑‍⚕️ Blue = Missionaries · 💀 Red = Cannibals · Never let cannibals outnumber missionaries!');
+</script>
+</body>
+</html>
